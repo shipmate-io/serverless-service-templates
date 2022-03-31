@@ -323,7 +323,7 @@ deployment:
         - name: MAX_FILE_UPLOAD
           value: "{{ variable.maximum_file_upload_size }}"
       memory: "{{ variable.memory }}"
-      cpus: "{{ variable.cpus * 1000 }}"
+      cpus: "{{ variable.cpus }}"
 
   - type: cli_service
     name: cli
@@ -353,7 +353,7 @@ deployment:
         - name: MAX_FILE_UPLOAD
           value: "{{ variable.maximum_file_upload_size }}"
       memory: "{{ variable.memory }}"
-      cpus: "{{ variable.cpus * 1000 }}"
+      cpus: "{{ variable.cpus }}"
 
   - type: background_worker
     name: "worker_{{ loop.key }}"
@@ -376,8 +376,8 @@ deployment:
           value: "{{ loop.value.concurrency }}"
         - name: MAX_FILE_UPLOAD
           value: "{{ variable.maximum_file_upload_size }}"
-      memory: "{{ loop.value.memory ?? variable.memory }}"
-      cpus: "{{ (loop.value.cpus ?? variable.cpus) * 1000 }}"
+      memory: "{{ loop.value.memory }}"
+      cpus: "{{ loop.value.cpus }}"
     loop: "{{ variable.workers }}"
 
   - type: cron_job
