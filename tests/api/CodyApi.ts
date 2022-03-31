@@ -13,6 +13,7 @@ export default class CodyApi {
         const form = new FormData()
 
         form.append('template', fs.createReadStream(pathToZipFile))
+        form.append('service_type', 'serverless')
 
         try {
             await axios.post(`${this.host}/v1/service-templates/local/validate`, form, {

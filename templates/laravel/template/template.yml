@@ -378,7 +378,7 @@ deployment:
           value: "{{ variable.maximum_file_upload_size }}"
       memory: "{{ loop.value.memory ?? variable.memory }}"
       cpus: "{{ (loop.value.cpus ?? variable.cpus) * 1000 }}"
-    loop: "{{ variable.daemons }}"
+    loop: "{{ variable.workers }}"
 
   - type: cron_job
     name: scheduler
@@ -403,7 +403,9 @@ deployment:
   - type: entrypoint
     name: web
     alias: Web service
-    target: "{* web_service.web *}"
+    target: 
+      type: web_service
+      web_service: "{* web_service.web *}"
     port: 8080
     protocol: HTTPS
 
