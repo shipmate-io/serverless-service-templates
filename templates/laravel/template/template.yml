@@ -1,0 +1,418 @@
+api: v1
+
+meta:
+  name: Laravel
+  description: PHP service using the Laravel framework
+
+form:
+
+  - name: Source code
+    questions:
+
+      - type: file_path
+        name: Path to Laravel source code
+        description: >
+          The absolute path to the directory in the Git repository that contains the source code of the service.
+          For example: "/services/billing".
+        variable: path_to_source_code
+        required: false
+        default: /
+
+      - type: file_paths
+        name: Paths to shared libraries
+        description: >
+          If the service uses one or more shared libraries that are stored in the Git repository outside of its source 
+          directory, you should specify the absolute paths to these libraries here. 
+          For example: "/libraries/validation-helpers".
+        variable: paths_to_shared_libraries
+        required: false
+
+      - type: select
+        name: PHP version
+        description: The PHP version in which the source code of the service is written.
+        required: true
+        variable: php_version
+        options:
+          - name: "7.4"
+            value: "7.4"
+          - name: "8.0"
+            value: "8.0"
+
+      - type: structs
+        name: Private composer registries
+        description: >
+          The private Composer registries that host the private Composer dependencies of the service, if any.
+        variable: private_composer_registries
+        questions:
+          - type: string
+            name: URL
+            description: The URL of the private registry.
+            variable: url
+            required: true
+          - type: string
+            name: Username
+            description: The username that should be used to authenticate with the private registry.
+            variable: username
+            required: true
+          - type: password
+            name: Password
+            description: The password that should be used to authenticate with the private registry.
+            variable: password
+            required: true
+
+  - name: Frontend assets
+    questions:
+
+      - type: boolean
+        name: Build assets
+        description: Build the JavaScript and CSS assets of the service during the deployment process.
+        variable: build_assets
+
+      - name: Node version
+        description: The Node.js version used to build the assets.
+        variable: node_version
+        required: true
+        type: select
+        options:
+          - name: 16
+            value: 16
+          - name: 17
+            value: 17
+        default: 16
+        if: "{{ variable.build_assets }}"
+
+      - type: select
+        name: Package manager
+        description: The package manager used to install the JavaScript dependencies of the service.
+        variable: package_manager
+        required: true
+        options:
+          - name: NPM
+            value: npm
+          - name: Yarn
+            value: yarn
+        default: npm
+        if: "{{ variable.build_assets }}"
+
+      - type: code
+        name: Build assets script
+        description: >
+          The script to build the JavaScript and CSS assets of the service and store the result in Laravel's /public
+          directory.
+        variable: build_assets_script
+        required: true
+        default:
+          switch:
+            - case: "{{ variable.package_manager == 'npm' }}"
+              value: npm run production
+            - case: "{{ variable.package_manager == 'yarn' }}"
+              value: yarn run production
+        if: "{{ variable.build_assets }}"
+
+  - name: Deployment
+    questions:
+
+      - type: code
+        name: Deploy script
+        description: >
+          The script to run every time a new instance of the service is deployed. The script should only perform tasks 
+          of which the impact is limited to the scope of a single service.
+        variable: deploy_script
+        default: |
+          php artisan config:cache
+          php artisan route:cache
+          php artisan view:cache
+
+      - type: code
+        name: Release script
+        description: >
+          The script to run once every time a new version of the service is released. The script should only perform 
+          tasks that impact all instances of the service.
+        variable: release_script
+        default: |
+          sleep 60s
+          php artisan migrate --force
+
+  - name: Runtime
+    questions:
+
+      - type: timezone
+        name: Timezone
+        variable: timezone
+        required: true
+
+      - type: integer
+        name: Maximum file upload size
+        description: The maximum allowed size in megabytes (MB) of files uploaded to the service.
+        variable: maximum_file_upload_size
+        default: 2
+
+      - type: code
+        name: Additional software
+        description: >
+          The installation script for the additional Linux packages or utilities the service needs, if any. Within the 
+          script, you can use any default Linux Debian utility, including the apt package manager. Multi-line commands
+          and comments are not allowed in the script.
+        variable: additional_software_script
+
+  - name: Web service
+    questions:
+
+      - type: integer
+        name: Request timeout
+        description: >
+          The time in seconds after which the processing of a request is interrupted.
+        variable: timeout
+        required: true
+        default: 30
+
+      - type: integer
+        name: Request concurrency
+        description: >
+          The number of concurrent requests that can be handled by a single instance of the service.
+        variable: concurrency
+        required: true
+        default: 10
+
+      - type: integer
+        name: Minimum instances
+        description: >
+          The minimum number of instances of the service that should be available at all times.
+        variable: minimum_instances
+        required: true
+        default: 0
+
+      - type: integer
+        name: Maximum instances
+        description: >
+          The maximum number of instances of the service that can be available at all times.
+        variable: maximum_instances
+        required: true
+        default: 20
+
+      - type: binary_number
+        name: Memory
+        description: >
+          The amount of memory in megabytes that is allocated to each instance of the service.
+        variable: memory
+        required: true
+        default: 512
+      
+      - type: number
+        name: CPU cores
+        description: >
+          The number of CPU cores that is allocated to each instance of the service.
+        variable: cpus
+        required: true
+        default: 1
+
+  - name: Background processing
+    questions:
+
+      - type: boolean
+        name: Laravel scheduler
+        description: Enable the Laravel scheduler to run periodic tasks.
+        variable: scheduler
+
+      - type: structs
+        name: Queue workers
+        variable: workers
+        questions:
+
+          - type: string
+            name: Name
+            description: >
+              A name in snake_case notation that helps you distinguish between multiple queue workers.
+            variable: name
+            required: true
+
+          - type: integer
+            name: Job timeout
+            description: >
+              The time in seconds after which the processing of a job is interrupted.
+            variable: timeout
+            required: true
+            default: 900
+
+          - type: integer
+            name: Job concurrency
+            description: >
+              The number of concurrent jobs that can be handled by a single instance of the queue worker.
+            variable: concurrency
+            required: true
+            default: 10
+
+          - type: integer
+            name: Minimum instances
+            description: >
+              The minimum number of instances of the queue worker that should be available at all times.
+            variable: minimum_instances
+            required: true
+            default: 0
+
+          - type: integer
+            name: Maximum instances
+            description: >
+              The maximum number of instances of the queue worker that can be available at all times.
+            variable: maximum_instances
+            required: true
+            default: 20
+
+          - type: binary_number
+            name: Memory
+            description: >
+              The amount of memory in megabytes that is allocated to each instance of the queue worker.
+            variable: memory
+            required: true
+            default: 512
+      
+          - type: number
+            name: CPU cores
+            description: >
+              The number of CPU cores that is allocated to each instance of the queue worker.
+            variable: cpus
+            required: true
+            default: 1
+
+deployment:
+
+  - type: image
+    name: laravel
+    alias: Laravel
+    dockerfile: Dockerfile
+    files:
+      - "{{ path('code-repository', variable.path_to_source_code, '**') }}"
+      - path: "{{ path('code-repository', loop.value, '**') }}"
+        loop: "{{ variable.paths_to_shared_libraries }}"
+      - nginx/cli.conf
+      - nginx/web.conf
+      - nginx/mode.sh
+      - php/cli.php
+      - php/init.sh
+      - php/run.sh
+    arguments:
+      - name: PRIVATE_COMPOSER_REGISTRY_URL_{{ loop.key }}
+        value: "{{ loop.value.url }}"
+        loop: "{{ variable.private_composer_registries }}"
+      - name: PRIVATE_COMPOSER_REGISTRY_USERNAME_{{ loop.key }}
+        value: "{{ loop.value.username }}"
+        loop: "{{ variable.private_composer_registries }}"
+      - name: PRIVATE_COMPOSER_REGISTRY_PASSWORD_{{ loop.key }}
+        value: "{{ loop.value.password }}"
+        loop: "{{ variable.private_composer_registries }}"
+
+  - type: web_service
+    name: web
+    alias: Web service
+    replicas:
+      minimum: "{{ variable.minimum_instances }}"
+      maximum: "{{ variable.maximum_instances }}"
+    concurrency: "{{ variable.concurrency }}"
+    timeout: "{{ variable.timeout }}"
+    container:
+      name: laravel
+      image: "{* image.laravel *}"
+      environment:
+        - map: "{{ environment }}"
+        - name: CONTAINER_MODE
+          value: web
+        - name: TIMEZONE
+          value: "{{ variable.timezone }}"
+        - name: CONCURRENCY
+          value: "{{ variable.concurrency }}"
+        - name: MAX_FILE_UPLOAD
+          value: "{{ variable.maximum_file_upload_size }}"
+      memory: "{{ variable.memory }}"
+      cpus: "{{ variable.cpus * 1000 }}"
+
+  - type: cli_service
+    name: cli
+    alias: CLI
+    replicas:
+      minimum: 0
+      maximum: 1
+    concurrency: 10
+    timeout: 120
+    trigger:
+      method: GET
+      path: /
+      parameters:
+        - name: command
+          value: "{{ command }}"
+    container:
+      name: laravel
+      image: "{* image.laravel *}"
+      environment:
+        - map: "{{ environment }}"
+        - name: CONTAINER_MODE
+          value: cli
+        - name: TIMEZONE
+          value: "{{ variable.timezone }}"
+        - name: CONCURRENCY
+          value: 10
+        - name: MAX_FILE_UPLOAD
+          value: "{{ variable.maximum_file_upload_size }}"
+      memory: "{{ variable.memory }}"
+      cpus: "{{ variable.cpus * 1000 }}"
+
+  - type: background_worker
+    name: "worker_{{ loop.key }}"
+    alias: "Queue worker {{ loop.value.name }}"
+    replicas:
+      minimum: "{{ loop.value.minimum_instances }}"
+      maximum: "{{ loop.value.maximum_instances }}"
+    concurrency: "{{ loop.value.concurrency }}"
+    timeout: "{{ loop.value.timeout }}"
+    container:
+      name: laravel
+      image: "{* image.laravel *}"
+      environment:
+        - map: "{{ environment }}"
+        - name: CONTAINER_MODE
+          value: web
+        - name: TIMEZONE
+          value: "{{ variable.timezone }}"
+        - name: CONCURRENCY
+          value: "{{ loop.value.concurrency }}"
+        - name: MAX_FILE_UPLOAD
+          value: "{{ variable.maximum_file_upload_size }}"
+      memory: "{{ loop.value.memory ?? variable.memory }}"
+      cpus: "{{ (loop.value.cpus ?? variable.cpus) * 1000 }}"
+    loop: "{{ variable.daemons }}"
+
+  - type: cron_job
+    name: scheduler
+    alias: Scheduler
+    schedule: "* * * * *"
+    timezone: "{{ variable.timezone }}"
+    target:
+      type: cli_service
+      cli_service: "{* cli_service.cli *}"
+      command: "php artisan schedule:run"
+    if: "{{ variable.scheduler }}"
+
+  - type: job
+    name: init
+    alias: Initialization
+    target:
+      type: cli_service
+      cli_service: "{* cli_service.cli *}"
+      command: "sh init.sh"
+    if: "{{ variable.release_script }}"
+
+  - type: entrypoint
+    name: web
+    alias: Web service
+    target: "{* web_service.web *}"
+    port: 8080
+    protocol: HTTPS
+
+interface:
+
+  - type: shared_variable
+    name: host
+    value: "{{ entrypoint.web.host }}"
+
+  - type: shared_variable
+    name: port
+    value: "{{ entrypoint.web.port }}"

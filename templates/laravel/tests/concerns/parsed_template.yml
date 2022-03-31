@@ -1,0 +1,651 @@
+name: local:laravel
+version: latest
+alias: Laravel
+description: PHP service using the Laravel framework
+icon:
+api: v1
+form:
+
+  - name: Source code
+    description:
+    questions:
+
+      - name: Path to Laravel source code
+        description: >
+          The absolute path to the directory in the Git repository that contains
+          the source code of the service. For example: "/services/billing".
+        type: file_path
+        variable: path_to_source_code
+        value: services/laravel/
+
+      - name: Paths to shared libraries
+        description: >
+          If the service uses one or more shared libraries that are stored
+          in the Git repository outside of its source  directory, you should specify the
+          absolute paths to these libraries here.  For example: "/libraries/validation-helpers".
+        type: file_paths
+        variable: paths_to_shared_libraries
+        value:
+          - libraries/ui-components
+
+      - name: PHP version
+        description: The PHP version in which the source code of the service is written.
+        type: select
+        variable: php_version
+        value: '7.4'
+
+      - name: Private composer registries
+        description: >
+          The private Composer registries that host the private Composer dependencies
+          of the service, if any.
+        type: structs
+        variable: private_composer_registries
+        value:
+          - url: private.packagist.com
+            username: john.doe@example.com
+            password: secret
+        questions:
+          - - name: URL
+              description: The URL of the private registry.
+              type: string
+              variable: private_composer_registries.0.url
+              value: private.packagist.com
+            - name: Username
+              description: The username that should be used to authenticate with the private
+                registry.
+              type: string
+              variable: private_composer_registries.0.username
+              value: john.doe@example.com
+            - name: Password
+              description: The password that should be used to authenticate with the private
+                registry.
+              type: password
+              variable: private_composer_registries.0.password
+              value: secret
+
+  - name: Frontend assets
+    description:
+    questions:
+
+      - name: Build assets
+        description: Build the JavaScript and CSS assets of the service during the deployment
+          process.
+        type: boolean
+        variable: build_assets
+        value: 'true'
+
+      - name: Node version
+        description: The Node.js version used to build the assets.
+        type: select
+        variable: node_version
+        value: 16
+
+      - name: Package manager
+        description: The package manager used to install the JavaScript dependencies of
+          the service.
+        type: select
+        variable: package_manager
+        value: npm
+
+      - name: Build assets script
+        description: >
+          The script to build the JavaScript and CSS assets of the service
+          and store the result in Laravel's /public directory.
+        type: code
+        variable: build_assets_script
+        value: npm run production
+
+  - name: Operating system
+    description:
+    questions:
+
+      - name: Timezone
+        description:
+        type: timezone
+        variable: timezone
+        value: Europe/Brussels
+
+      - name: Maximum file upload size
+        description: The maximum allowed size in megabytes (MB) of files uploaded to the
+          service.
+        type: integer
+        variable: maximum_file_upload_size
+        value: '25'
+
+      - name: Additional software
+        description: >
+          The installation script for the additional Linux packages or utilities
+          the service needs, if any. Within the  script, you can use any default Linux
+          Debian utility, including the apt package manager. Multi-line commands and comments
+          are not allowed in the script.
+        type: code
+        variable: additional_software_script
+        value: |-
+          apt-get install -y default-mysql-client
+          
+          [ -d storage ] ?? echo "storage folder exists" || echo "storage folder does not exist"
+
+  - name: Background processing
+    description:
+    questions:
+
+      - name: Laravel scheduler
+        description: Enable the Laravel scheduler to run periodic tasks.
+        type: boolean
+        variable: run_scheduler
+        value: 'true'
+
+      - name: Daemons
+        description: >
+          The daemon processes that should run throughout the entire lifetime of the service.
+        type: structs
+        variable: daemons
+        questions:
+          - - name: Command
+              description: >
+                The command to start the daemon. For example: "php artisan queue:work".
+              type: string
+              variable: daemons.0.command
+              value: php artisan horizon
+
+  - name: Deployment
+    description:
+    questions:
+
+      - name: Deploy script
+        description: >
+          The script to run every time a new instance of the service is deployed.
+          The script should only perform tasks  of which the impact is limited to the
+          scope of a single service.
+        type: code
+        variable: deploy_script
+        value: |-
+          php artisan config:cache
+          php artisan route:cache
+          php artisan view:cache
+
+      - name: Release script
+        description: >
+          The script to run once every time a new version of the service is
+          released. The script should only perform  tasks that impact all instances of
+          the service.
+        type: code
+        variable: release_script
+        value: |-
+          php artisan db:ready
+          php artisan migrate --force
+
+deployment:
+
+  - type: image
+    id: app-service-backend-image-laravel
+    name: laravel
+    dockerfile_path: php/Dockerfile
+    file_paths:
+      - code-repository/services/laravel/**
+      - code-repository/libraries/ui-components/**
+      - php/init.sh
+      - php/run.sh
+      - php/Dockerfile
+    arguments:
+      - name: PRIVATE_COMPOSER_REGISTRY_URL_0
+        value: private.packagist.com
+      - name: PRIVATE_COMPOSER_REGISTRY_USERNAME_0
+        value: john.doe@example.com
+      - name: PRIVATE_COMPOSER_REGISTRY_PASSWORD_0
+        value: secret
+
+  - type: image
+    id: app-service-backend-image-nginx
+    name: nginx
+    dockerfile_path: nginx/Dockerfile
+    file_paths:
+      - code-repository/services/laravel/**
+      - code-repository/libraries/ui-components/**
+      - nginx/server.conf
+      - nginx/Dockerfile
+
+  - type: stateless_set
+    id: backend-stateless-set-laravel
+    name: laravel
+    auto_scaling:
+      min_replicas: 1
+      max_replicas: 20
+      metrics:
+        - type: cpu_utilization
+          target: 60
+    update_strategy: rolling_update
+    containers:
+      - id: backend-stateless-set-laravel-container-laravel
+        name: laravel
+        image: app-service-backend-image-laravel
+        environment_variables:
+          - name: CODY_ENV
+            value: app
+          - name: APP_KEY
+            value: base64:c3SzeMQZZHPT+eLQH6BnpDhw/uKH2N5zgM2x2a8qpcA=
+          - name: APP_ENV
+            value: production
+          - name: APP_DEBUG
+            value: 'false'
+          - name: TIMEZONE
+            value: Europe/Brussels
+          - name: MAX_FILE_UPLOAD
+            value: 25
+        memory:
+          minimum: 512
+          maximum: 512
+        cpus:
+          minimum: 1000
+          maximum: 1000
+
+  - type: stateless_set
+    id: backend-stateless-set-daemon-0
+    name: daemon_0
+    auto_scaling:
+      min_replicas: 1
+      max_replicas: 20
+      metrics:
+        - type: cpu_utilization
+          target: 60
+    update_strategy: rolling_update
+    containers:
+      - id: backend-stateless-set-daemon-0-container-laravel
+        name: laravel
+        image: app-service-backend-image-laravel
+        environment_variables:
+          - name: CODY_ENV
+            value: app
+          - name: APP_KEY
+            value: base64:c3SzeMQZZHPT+eLQH6BnpDhw/uKH2N5zgM2x2a8qpcA=
+          - name: APP_ENV
+            value: production
+          - name: APP_DEBUG
+            value: 'false'
+          - name: TIMEZONE
+            value: Europe/Brussels
+        command:
+          - php
+          - artisan
+          - horizon
+        memory:
+          minimum: 512
+          maximum: 512
+        cpus:
+          minimum: 1000
+          maximum: 1000
+
+  - type: stateless_set
+    id: backend-stateless-set-daemon-1
+    name: daemon_1
+    auto_scaling:
+      min_replicas: 1
+      max_replicas: 20
+      metrics:
+        - type: cpu_utilization
+          target: 60
+    update_strategy: rolling_update
+    containers:
+      - id: backend-stateless-set-daemon-1-container-laravel
+        name: laravel
+        image: app-service-backend-image-laravel
+        environment_variables:
+          - name: CODY_ENV
+            value: app
+          - name: APP_KEY
+            value: base64:c3SzeMQZZHPT+eLQH6BnpDhw/uKH2N5zgM2x2a8qpcA=
+          - name: APP_ENV
+            value: production
+          - name: APP_DEBUG
+            value: 'false'
+          - name: TIMEZONE
+            value: Europe/Brussels
+        command:
+          - php
+          - artisan
+          - queue:work
+        memory:
+          minimum: 1024
+          maximum: 1024
+        cpus:
+          minimum: 500
+          maximum: 500
+
+  - type: cron_job
+    id: backend-cron-job-scheduler
+    name: scheduler
+    schedule: "* * * * *"
+    retries:
+    timeout:
+    containers:
+      - id: backend-cron-job-scheduler-container-laravel
+        name: laravel
+        image: app-service-backend-image-laravel
+        environment_variables:
+          - name: CODY_ENV
+            value: app
+          - name: APP_KEY
+            value: base64:c3SzeMQZZHPT+eLQH6BnpDhw/uKH2N5zgM2x2a8qpcA=
+          - name: APP_ENV
+            value: production
+          - name: APP_DEBUG
+            value: 'false'
+          - name: TIMEZONE
+            value: Europe/Brussels
+        command:
+          - php
+          - "/var/www/services/laravel/artisan"
+          - schedule:run
+        memory:
+          minimum: 256
+          maximum: 256
+        cpus:
+          minimum: 500
+          maximum: 500
+
+  - type: job
+    id: backend-job-init
+    name: init
+    retries:
+    timeout:
+    containers:
+      - id: backend-job-init-container-laravel
+        name: laravel
+        image: app-service-backend-image-laravel
+        environment_variables:
+          - name: CODY_ENV
+            value: app
+          - name: APP_KEY
+            value: base64:c3SzeMQZZHPT+eLQH6BnpDhw/uKH2N5zgM2x2a8qpcA=
+          - name: APP_ENV
+            value: production
+          - name: APP_DEBUG
+            value: 'false'
+          - name: TIMEZONE
+            value: Europe/Brussels
+        command:
+          - "/scripts/init.sh"
+        memory:
+          minimum: 256
+          maximum: 256
+        cpus:
+          minimum: 500
+          maximum: 500
+
+  - type: stateless_set
+    id: backend-stateless-set-nginx
+    name: nginx
+    auto_scaling:
+      min_replicas: 1
+      max_replicas: 20
+      metrics:
+        - type: cpu_utilization
+          target: 60
+    update_strategy: rolling_update
+    containers:
+      - id: backend-stateless-set-nginx-container-nginx
+        name: nginx
+        image: app-service-backend-image-nginx
+        environment_variables:
+          - name: MAX_FILE_UPLOAD
+            value: 25
+        memory:
+          minimum: 64
+          maximum: 64
+        cpus:
+          minimum: 100
+          maximum: 100
+
+  - type: entrypoint
+    id: backend-entrypoint-php
+    name: php
+    alias: PHP
+    description:
+    target:
+      type: set_target
+      set_type: stateless_set
+      set_id: backend-stateless-set-laravel
+    protocol: TCP
+    port: 9000
+
+  - type: entrypoint
+    id: backend-entrypoint-nginx
+    name: nginx
+    alias: NGINX
+    description:
+    target:
+      type: set_target
+      set_type: stateless_set
+      set_id: backend-stateless-set-nginx
+    protocol: HTTPS
+    port: 8080
+
+interfaces:
+
+  - type: shared_variable
+    name: host
+    value: backend-entrypoint-nginx
+
+  - type: shared_variable
+    name: port
+    value: 8080
+
+  - type: logs
+    name: NGINX
+    description:
+    source:
+      type: stateless_set
+      id: backend-stateless-set-nginx
+
+  - type: logs
+    name: Init script
+    description:
+    source:
+      type: job
+      id: backend-job-init
+
+  - type: logs
+    name: Laravel
+    description:
+    source:
+      type: stateless_set
+      id: backend-stateless-set-laravel
+
+  - type: logs
+    name: Scheduler
+    description:
+    source:
+      type: cron_job
+      id: backend-cron-job-scheduler
+
+  - type: logs
+    name: 'Daemon: php artisan horizon'
+    description:
+    source:
+      type: stateless_set
+      id: backend-stateless-set-daemon-0
+
+files:
+
+  - path: php/run.sh
+    contents: |
+      #!/bin/sh
+      
+      php artisan config:cache
+      php artisan route:cache
+      php artisan view:cache
+
+  - path: php/init.sh
+    contents: |
+      #!/bin/sh
+      
+      php artisan db:ready
+      php artisan migrate --force
+
+  - path: php/Dockerfile
+    contents: |-
+      # Set the php-fpm base image, based on the specified php version.
+      FROM europe-west3-docker.pkg.dev/smoothy-171414/base-images/php-fpm/7.4:1.0.2 AS php-stage
+      
+      # Install the additional Linux packages or utilites, if specified.
+      RUN apt-get update \
+       && (apt-get install -y default-mysql-client) \
+       && ([ -d storage ] ?? echo "storage folder exists" || echo "storage folder does not exist") \
+       && apt-get clean \
+       && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+      
+      # Build the JavaScript and CSS assets, if specified.
+      FROM node:16-alpine AS assets-stage
+      
+      # Create the directory to copy to Laravel source code to.
+      RUN mkdir -p /app/services/laravel/
+      
+      # CD into the directory.
+      WORKDIR /app/services/laravel/
+      
+      # Copy the locked JavaScript dependency manifest into the directory and install the dependencies using the specified package manager.
+      COPY code-repository/services/laravel/package*.json /app/services/laravel/
+      RUN npm install
+      
+      # Copy the source code of the service into the directory.
+      COPY code-repository/services/laravel/ /app/services/laravel/
+      
+      # Copy the source code of the shared libraries into the directory.
+      COPY code-repository/libraries/ui-components/  /app/libraries/ui-components/
+      
+      # Run the specified build assets script.
+      RUN npm run production
+      
+      # Switch to the php image.
+      FROM php-stage AS production-stage
+      
+      # Copy the init.sh script into the image.
+      COPY --chown=cody:cody php/init.sh /scripts/init.sh
+      
+      # Make the scripts executable to users of the cody group.
+      RUN chmod -R 775 /scripts
+      
+      # Copy the run.sh entrypoint into the image.
+      COPY --chown=cody:cody php/run.sh /entrypoints/run.sh
+      
+      # Copy the source code of the service into the image.
+      COPY --chown=cody:cody code-repository/services/laravel/ /var/www/services/laravel/
+      
+      # Copy the source code of the shared libraries into the image.
+      COPY --chown=cody:cody code-repository/libraries/ui-components/ /var/www/libraries/ui-components/
+      
+      # Make the "storage" and "bootstrap/cache" directories writable to users of the cody group.
+      RUN chmod -R 775 /var/www/services/laravel/storage \
+       && chmod -R 775 /var/www/services/laravel/bootstrap/cache
+      
+      # Copy the built JavaScript and CSS assets into the image, if any.
+      COPY --chown=cody:cody --from=assets-stage /app/services/laravel/public /var/www/services/laravel/public
+      
+      # CD into the directory containing the source code of the service.
+      WORKDIR /var/www/services/laravel/
+      
+      # Authenticate against the specified private composer registries, if any.
+      ARG PRIVATE_COMPOSER_REGISTRY_URL_0
+      ARG PRIVATE_COMPOSER_REGISTRY_USERNAME_0
+      ARG PRIVATE_COMPOSER_REGISTRY_PASSWORD_0
+      RUN composer config $PRIVATE_COMPOSER_REGISTRY_URL_0 $PRIVATE_COMPOSER_REGISTRY_USERNAME_0 $PRIVATE_COMPOSER_REGISTRY_PASSWORD_0
+      
+      # Install the composer dependencies of the service.
+      RUN composer install --ignore-platform-reqs --no-dev --no-interaction --prefer-dist
+
+  - path: nginx/Dockerfile
+    contents: |
+      # Build the JavaScript and CSS assets, if specified.
+      FROM node:16-alpine as assets-stage
+      
+      # Create the directory to copy to Laravel source code to.
+      RUN mkdir -p /app/services/laravel/
+      
+      # CD into the directory.
+      WORKDIR /app/services/laravel/
+      
+      # Copy the locked JavaScript dependency manifest into the directory and install the dependencies using the specified package manager.
+      COPY code-repository/services/laravel/package*.json /app/services/laravel/
+      RUN npm install
+      
+      # Copy the source code of the service into the directory.
+      COPY code-repository/services/laravel/ /app/services/laravel/
+      
+      # Copy the source code of the shared libraries into the directory.
+      COPY code-repository/libraries/ui-components/  /app/libraries/ui-components/
+      
+      # Run the specified build assets script.
+      RUN npm run production
+      
+      # Switch to the nginx image.
+      FROM europe-west3-docker.pkg.dev/smoothy-171414/base-images/nginx/1.19:1.0.2
+      
+      # Copy the nginx configuration into the image.
+      COPY --chown=cody:cody nginx/server.conf /etc/nginx/conf.d/server.conf
+      
+      # Copy the source code of the service into the image.
+      COPY --from=assets-stage /app/services/laravel/public /var/www/services/laravel/public
+
+  - path: nginx/server.conf
+    contents: |-
+      server {
+          listen 8080;
+          listen [::]:8080 default ipv6only=on;
+          server_name _;
+      
+          root /var/www/services/laravel/public;
+          index index.php index.html index.htm;
+          error_page 404 /index.php;
+          charset utf-8;
+      
+          add_header X-Frame-Options "sameorigin";
+          add_header X-XSS-Protection "1; mode=block";
+          add_header X-Content-Type-Options "nosniff";
+      
+          location = /favicon.ico {
+              log_not_found off;
+          }
+      
+          location = /robots.txt  {
+              log_not_found off;
+          }
+      
+          location ~* \.(jpg|jpeg|png|gif|ico|css|js)$ {
+            expires 1M;
+            add_header Cache-Control public;
+            add_header Pragma public;
+            add_header Vary Accept-Encoding;
+          }
+      
+          location ~ \.php$ {
+      
+              root /var/www/services/laravel/public;
+      
+              # Defines a regular expression that captures two values. The first becomes the
+              # value of the $fastcgi_script_name variable, the second becomes the value of
+              # the $fastcgi_path_info variable.
+              fastcgi_split_path_info ^(.+\.php)(/.+)$;
+      
+              # Sets the address of a FastCGI server. The address can be specified as a
+              # domain name or IP address, and a port, or as a UNIX-domain socket path.
+              fastcgi_pass backend-entrypoint-php:9000;
+      
+              # Sets a file name that will be appended after a URI that ends with a slash,
+              # in the value of the $fastcgi_script_name variable.
+              fastcgi_index index.php;
+      
+              include /etc/nginx/fastcgi_params;
+              fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+              fastcgi_param PATH_INFO $fastcgi_path_info;
+      
+          }
+      
+          location / {
+              try_files $uri $uri/ /index.php?$query_string;
+          }
+      
+          location ~ /\. {
+              log_not_found off;
+              deny all;
+          }
+      }
