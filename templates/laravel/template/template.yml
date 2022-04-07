@@ -274,7 +274,7 @@ form:
             required: true
             default: 1
 
-deployment:
+workloads:
 
   - type: image
     name: laravel
