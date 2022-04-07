@@ -304,7 +304,7 @@ deployment:
   - type: web_service
     name: web
     alias: Web service
-    replicas:
+    instances:
       minimum: "{{ variable.minimum_instances }}"
       maximum: "{{ variable.maximum_instances }}"
     concurrency: "{{ variable.concurrency }}"
@@ -328,7 +328,7 @@ deployment:
   - type: cli_service
     name: cli
     alias: CLI
-    replicas:
+    instances:
       minimum: 0
       maximum: 1
     concurrency: 10
@@ -336,9 +336,6 @@ deployment:
     trigger:
       method: GET
       path: /
-      parameters:
-        - name: command
-          value: "{{ command }}"
     container:
       name: laravel
       image: "{* image.laravel *}"
@@ -358,7 +355,7 @@ deployment:
   - type: background_worker
     name: "worker_{{ loop.key }}"
     alias: "Queue worker {{ loop.value.name }}"
-    replicas:
+    instances:
       minimum: "{{ loop.value.minimum_instances }}"
       maximum: "{{ loop.value.maximum_instances }}"
     concurrency: "{{ loop.value.concurrency }}"
@@ -408,13 +405,3 @@ deployment:
       web_service: "{* web_service.web *}"
     port: 8080
     protocol: HTTPS
-
-interface:
-
-  - type: shared_variable
-    name: host
-    value: "{{ entrypoint.web.host }}"
-
-  - type: shared_variable
-    name: port
-    value: "{{ entrypoint.web.port }}"
