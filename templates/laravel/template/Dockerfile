@@ -76,7 +76,7 @@ COPY {{ path('code-repository/', path_to_shared_library, '/') }} {{ path('/var/w
 {% endfor %}
 
 # Copy the cli.php file into the image.
-COPY php/cli.php {{ {{ path('/var/www', variable.path_to_source_code, 'cli.php') }}
+COPY php/cli.php {{ path('/var/www', variable.path_to_source_code, 'cli.php') }}
 
 # Make the "storage" and "bootstrap/cache" directories writable.
 RUN chmod -R 775 {{ path('/var/www/', variable.path_to_source_code, '/storage') }} \
