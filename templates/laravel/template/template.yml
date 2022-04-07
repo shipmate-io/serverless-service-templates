@@ -403,5 +403,3 @@ workloads:
     target: 
       type: web_service
       web_service: "{* web_service.web *}"
-    port: 8080
-    protocol: HTTPS
