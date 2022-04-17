@@ -1,0 +1,252 @@
+name: local:nuxtjs
+version: latest
+alias: Nuxt.js
+description: JavaScript service using the Nuxt.js framework
+icon:
+api: v1
+form:
+
+  - name: Source code
+    description:
+    questions:
+
+      - name: Path to source code
+        description: >
+          The absolute path to the directory in the Git repository that contains
+          the source code of the service. For example: "/services/web-client".
+        type: file_path
+        variable: path_to_source_code
+        value: src/
+
+      - name: Paths to shared libraries
+        description: >
+          If the service uses one or more shared libraries that are stored
+          in the Git repository outside of its source  directory, you should specify the
+          absolute paths to these libraries here.  For example: "/libraries/ui-components".
+        type: file_paths
+        variable: paths_to_shared_libraries
+        value: []
+
+  - name: Building configuration
+    description:
+    questions:
+
+      - name: Node version
+        description: The Node.js version used to build the source code.
+        type: select
+        variable: node_version
+        value: 16
+
+      - name: Package manager
+        description: The package manager used to install the Node.js dependencies of the
+          service.
+        type: select
+        variable: package_manager
+        value: npm
+
+      - name: Private NPM registries
+        description:
+          The private NPM registries that host the private NPM packages of
+          the service, if any.
+        type: structs
+        variable: private_npm_registries
+        value:
+          - url: https://npm.pkg.github.com/
+            scope: "@spatie"
+            auth_token: 5tS2O6eqzCMykMk9zF0za8L2QMbQGbbR
+        questions:
+          - - name: URL
+              description: The URL of the private registry.
+              type: string
+              variable: private_npm_registries.0.url
+              value: https://npm.pkg.github.com/
+            - name: Scope
+              description: 'The scope of the packages stored in the private registry. For example: @fortawesome'
+              type: string
+              variable: private_npm_registries.0.scope
+              value: "@spatie"
+            - name: Authentication token
+              description: The authentication token that should be used to authenticate with the private registry.
+              type: password
+              variable: private_npm_registries.0.auth_token
+              value: 5tS2O6eqzCMykMk9zF0za8L2QMbQGbbR
+
+      - name: Build target
+        description: The type of build to create for the service.
+        type: select
+        variable: build_target
+        value: static
+
+      - name: Build script
+        description: The script to build the service.
+        type: code
+        variable: build_script
+        value: npm run generate
+
+      - name: Path to build
+        description: The directory in which the build of the service is stored by the
+          build script.
+        type: file_path
+        variable: path_to_build
+        value: dist/
+
+  - name: Operating system
+    description:
+    questions:
+
+      - name: Additional software
+        description: >
+          The installation script for the additional Linux packages or utilities
+          the service needs, if any. Within the  script, you can use any default Linux
+          Debian utility, including the apt package manager. Multi-line commands and comments
+          are not allowed in the script.
+        type: code
+        variable: additional_software_script
+        value:
+
+deployment:
+
+  - type: image
+    id: app-service-website-image-nuxtjs-static
+    name: nuxtjs_static
+    dockerfile_path: static/Dockerfile
+    file_paths:
+      - code-repository/src/**
+      - static/server.conf
+      - static/Dockerfile
+    arguments:
+      - name: CODY_ENV
+        value: app
+      - name: NUXT_ENV_API_HOST
+        value: abc123
+      - name: NUXT_ENV_STRIPE_KEY
+        value: xyz789
+
+  - type: stateless_set
+    id: website-stateless-set-nuxtjs-static
+    name: nuxtjs_static
+    auto_scaling:
+      min_replicas: 1
+      max_replicas: 20
+      metrics:
+        - type: cpu_utilization
+          target: 60
+    update_strategy: rolling_update
+    containers:
+      - id: website-stateless-set-nuxtjs-static-container-nuxtjs
+        name: nuxtjs
+        image: app-service-website-image-nuxtjs-static
+        memory:
+          minimum: 64
+          maximum: 64
+        cpus:
+          minimum: 200
+          maximum: 200
+
+  - type: entrypoint
+    id: website-entrypoint-nuxtjs-static
+    name: nuxtjs_static
+    alias: Nuxt.js service
+    target:
+      type: set_target
+      set_type: stateless_set
+      set_id: website-stateless-set-nuxtjs-static
+    protocol: HTTPS
+    port: 8080
+
+interfaces:
+
+  - type: logs
+    name: NGINX error logs
+    source:
+      type: stateless_set
+      id: website-stateless-set-nuxtjs-static
+
+files:
+
+  - path: static/.npmrc
+    contents: |
+      //npm.pkg.github.com/:_authToken=5tS2O6eqzCMykMk9zF0za8L2QMbQGbbR
+      @spatie:registry=https://npm.pkg.github.com/
+
+  - path: static/Dockerfile
+    contents: |-
+      FROM node:16 as build-stage
+      
+      # Set the environment variables, if any.
+      ARG CODY_ENV
+      ARG NUXT_ENV_API_HOST
+      ARG NUXT_ENV_STRIPE_KEY
+      
+      # Install the additional Linux packages or utilites, if specified.
+      
+      # Create the directory to copy the source code to.
+      RUN mkdir -p /app/src/
+      
+      # CD into the directory.
+      WORKDIR /app/src/
+      
+      # Copy the npmrc configuration into the image to authenticate with private NPM registries.
+      COPY static/.npmrc /app/src/
+      
+      # Copy the locked dependency manifest into the directory and install the dependencies using the specified package manager.
+      COPY code-repository/src/package*.json /app/src/
+      RUN npm install
+      
+      # Copy the source code of the service into the directory.
+      COPY code-repository/src/ /app/src/
+      
+      # Copy the source code of the shared libraries into the directory.
+      
+      # Run the specified build assets script.
+      RUN npm run generate
+      
+      # Switch to the NGINX image.
+      FROM europe-west3-docker.pkg.dev/smoothy-171414/base-images/nginx/1.19:1.0.2
+      
+      # Copy the nginx configuration into the image.
+      COPY static/server.conf /etc/nginx/conf.d/server.conf
+      
+      # Copy the source code of the service into the image.
+      COPY --from=build-stage /app/src/dist/ /usr/share/nginx/html
+
+  - path: static/server.conf
+    contents: |-
+      server {
+          listen 8080;
+          listen [::]:8080 default ipv6only=on;
+          server_name _;
+      
+          root /usr/share/nginx/html;
+          index index.html;
+          error_page 404 /404.html;
+          charset utf-8;
+      
+          add_header X-Frame-Options "sameorigin";
+          add_header X-XSS-Protection "1; mode=block";
+          add_header X-Content-Type-Options "nosniff";
+      
+          location = /favicon.ico {
+              log_not_found off;
+          }
+      
+          location = /robots.txt  {
+              log_not_found off;
+          }
+      
+          location ~* \.(jpg|jpeg|png|gif|ico|css|js)$ {
+            expires 1M;
+            add_header Cache-Control public;
+            add_header Pragma public;
+            add_header Vary Accept-Encoding;
+          }
+      
+          location / {
+              try_files $uri $uri/index.html /index.html =404;
+          }
+      
+          location ~ /\. {
+              log_not_found off;
+              deny all;
+          }
+      }

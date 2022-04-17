@@ -175,7 +175,7 @@ form:
           php artisan db:ready
           php artisan migrate --force
 
-deployment:
+workloads:
 
   - type: image
     id: app-service-backend-image-laravel
@@ -419,51 +419,6 @@ deployment:
       set_id: backend-stateless-set-nginx
     protocol: HTTPS
     port: 8080
-
-interfaces:
-
-  - type: shared_variable
-    name: host
-    value: backend-entrypoint-nginx
-
-  - type: shared_variable
-    name: port
-    value: 8080
-
-  - type: logs
-    name: NGINX
-    description:
-    source:
-      type: stateless_set
-      id: backend-stateless-set-nginx
-
-  - type: logs
-    name: Init script
-    description:
-    source:
-      type: job
-      id: backend-job-init
-
-  - type: logs
-    name: Laravel
-    description:
-    source:
-      type: stateless_set
-      id: backend-stateless-set-laravel
-
-  - type: logs
-    name: Scheduler
-    description:
-    source:
-      type: cron_job
-      id: backend-cron-job-scheduler
-
-  - type: logs
-    name: 'Daemon: php artisan horizon'
-    description:
-    source:
-      type: stateless_set
-      id: backend-stateless-set-daemon-0
 
 files:
 
