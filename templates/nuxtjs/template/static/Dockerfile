@@ -49,7 +49,7 @@ RUN {{ command }}
 {% endfor %}
 
 # Switch to the NGINX image.
-FROM europe-west3-docker.pkg.dev/smoothy-171414/base-images/nginx/1.19:1.0.2
+FROM europe-west3-docker.pkg.dev/smoothy-171414/base-images/nginx/1.21:1.0.0
 
 # Copy the nginx configuration into the image.
 COPY static/server.conf /etc/nginx/conf.d/server.conf
