@@ -406,7 +406,7 @@ workloads:
     target:
       type: cli_service
       cli_service: "{* cli_service.cli *}"
-      command: "sh init.sh"
+      command: "sh /scripts/init.sh"
     if: "{{ variable.release_script }}"
 
   - type: entrypoint
