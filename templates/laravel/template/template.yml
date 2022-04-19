@@ -317,7 +317,7 @@ workloads:
         - name: CONTAINER_MODE
           value: web
         - name: CLOUD_RUN_PROJECT_HASH
-          value: "{{ application.google_project_hash }}"
+          value: "{{ application.gcp_project_hash }}"
         - name: GOOGLE_APPLICATION_CREDENTIALS
           value: "{{ workload.service_account_key }}"
         - name: TIMEZONE
@@ -348,7 +348,7 @@ workloads:
         - name: CONTAINER_MODE
           value: cli
         - name: CLOUD_RUN_PROJECT_HASH
-          value: "{{ application.google_project_hash }}"
+          value: "{{ application.gcp_project_hash }}"
         - name: GOOGLE_APPLICATION_CREDENTIALS
           value: "{{ workload.service_account_key }}"
         - name: TIMEZONE
@@ -376,7 +376,7 @@ workloads:
         - name: CONTAINER_MODE
           value: web
         - name: CLOUD_RUN_PROJECT_HASH
-          value: "{{ application.google_project_hash }}"
+          value: "{{ application.gcp_project_hash }}"
         - name: GOOGLE_APPLICATION_CREDENTIALS
           value: "{{ workload.service_account_key }}"
         - name: TIMEZONE
