@@ -317,9 +317,9 @@ workloads:
         - name: CONTAINER_MODE
           value: web
         - name: CLOUD_RUN_PROJECT_HASH
-          value: "{{ application.gcp_project_hash }}"
+          value: "{{ google.project_hash }}"
         - name: GOOGLE_APPLICATION_CREDENTIALS
-          value: "{{ workload.service_account_key }}"
+          value: "{{ google.key }}"
         - name: TIMEZONE
           value: "{{ variable.timezone }}"
         - name: CONCURRENCY
@@ -348,9 +348,9 @@ workloads:
         - name: CONTAINER_MODE
           value: cli
         - name: CLOUD_RUN_PROJECT_HASH
-          value: "{{ application.gcp_project_hash }}"
+          value: "{{ google.project_hash }}"
         - name: GOOGLE_APPLICATION_CREDENTIALS
-          value: "{{ workload.service_account_key }}"
+          value: "{{ google.key }}"
         - name: TIMEZONE
           value: "{{ variable.timezone }}"
         - name: CONCURRENCY
@@ -376,9 +376,9 @@ workloads:
         - name: CONTAINER_MODE
           value: web
         - name: CLOUD_RUN_PROJECT_HASH
-          value: "{{ application.gcp_project_hash }}"
+          value: "{{ google.project_hash }}"
         - name: GOOGLE_APPLICATION_CREDENTIALS
-          value: "{{ workload.service_account_key }}"
+          value: "{{ google.key }}"
         - name: TIMEZONE
           value: "{{ variable.timezone }}"
         - name: CONCURRENCY

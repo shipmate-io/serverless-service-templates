@@ -196,9 +196,9 @@ workloads:
       image: "{* image.nuxtjs_static *}"
       environment:
         - name: CLOUD_RUN_PROJECT_HASH
-          value: "{{ application.gcp_project_hash }}"
+          value: "{{ google.project_hash }}"
         - name: GOOGLE_APPLICATION_CREDENTIALS
-          value: "{{ workload.service_account_key }}"
+          value: "{{ google.key }}"
         - name: CONCURRENCY
           value: "{{ variable.concurrency }}"
       memory: "{{ variable.memory }}"
