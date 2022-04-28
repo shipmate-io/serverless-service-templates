@@ -318,8 +318,6 @@ workloads:
           value: web
         - name: CLOUD_RUN_PROJECT_HASH
           value: "{{ google.project_hash }}"
-        - name: GOOGLE_APPLICATION_CREDENTIALS
-          value: "{{ google.key }}"
         - name: TIMEZONE
           value: "{{ variable.timezone }}"
         - name: CONCURRENCY
@@ -349,8 +347,6 @@ workloads:
           value: cli
         - name: CLOUD_RUN_PROJECT_HASH
           value: "{{ google.project_hash }}"
-        - name: GOOGLE_APPLICATION_CREDENTIALS
-          value: "{{ google.key }}"
         - name: TIMEZONE
           value: "{{ variable.timezone }}"
         - name: CONCURRENCY
@@ -377,8 +373,6 @@ workloads:
           value: web
         - name: CLOUD_RUN_PROJECT_HASH
           value: "{{ google.project_hash }}"
-        - name: GOOGLE_APPLICATION_CREDENTIALS
-          value: "{{ google.key }}"
         - name: TIMEZONE
           value: "{{ variable.timezone }}"
         - name: CONCURRENCY

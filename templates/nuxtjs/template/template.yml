@@ -197,8 +197,6 @@ workloads:
       environment:
         - name: CLOUD_RUN_PROJECT_HASH
           value: "{{ google.project_hash }}"
-        - name: GOOGLE_APPLICATION_CREDENTIALS
-          value: "{{ google.key }}"
         - name: CONCURRENCY
           value: "{{ variable.concurrency }}"
       memory: "{{ variable.memory }}"
