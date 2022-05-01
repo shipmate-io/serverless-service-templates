@@ -7,12 +7,11 @@ FROM europe-west3-docker.pkg.dev/smoothy-171414/base-images/nginx-php-fpm/8.0:1.
 
 # Install the additional Linux packages or utilites, if specified.
 {% if variable.additional_software_script|length > 0 %}
-RUN apt-get update \
+RUN echo "" \
 {% for command in variable.additional_software_script|split('\n')|filter(command => command) %}
  && ({{ command }}) \
 {% endfor %}
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+ && echo ""
 {% endif %}
 
 # Build the JavaScript and CSS assets, if specified.
