@@ -53,6 +53,7 @@ FROM php-stage AS production-stage
 # Copy the NGINX configuration files into the image.
 COPY nginx/web.conf /etc/nginx/conf.d/web.conf
 COPY nginx/cli.conf /etc/nginx/conf.d/cli.conf
+COPY nginx/start.sh /opt/nginx.sh
 
 # Copy the mode.sh entrypoint into the image.
 COPY nginx/mode.sh /entrypoints/mode.sh
