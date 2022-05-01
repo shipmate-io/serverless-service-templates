@@ -16,7 +16,7 @@ do
     echo "FPM is running and ready. Starting nginx."
     /usr/sbin/nginx -c /etc/nginx/nginx.conf
     exit 0
-  elif
+  else
     echo "$response"
   fi
 
