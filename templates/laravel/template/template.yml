@@ -79,7 +79,7 @@ form:
           - name: 17
             value: 17
         default: 16
-        if: "{{ variable.build_assets }}"
+        if: "{{ variables.build_assets }}"
 
       - type: select
         name: Package manager
@@ -92,7 +92,7 @@ form:
           - name: Yarn
             value: yarn
         default: npm
-        if: "{{ variable.build_assets }}"
+        if: "{{ variables.build_assets }}"
 
       - type: code
         name: Build assets script
@@ -103,11 +103,11 @@ form:
         required: true
         default:
           switch:
-            - case: "{{ variable.package_manager == 'npm' }}"
+            - case: "{{ variables.package_manager == 'npm' }}"
               value: npm run production
-            - case: "{{ variable.package_manager == 'yarn' }}"
+            - case: "{{ variables.package_manager == 'yarn' }}"
               value: yarn run production
-        if: "{{ variable.build_assets }}"
+        if: "{{ variables.build_assets }}"
 
   - name: Deployment
     questions:
@@ -281,9 +281,9 @@ workloads:
     alias: Laravel
     dockerfile: Dockerfile
     files:
-      - "{{ path('code-repository', variable.path_to_source_code, '**') }}"
+      - "{{ path('code-repository', variables.path_to_source_code, '**') }}"
       - path: "{{ path('code-repository', loop.value, '**') }}"
-        loop: "{{ variable.paths_to_shared_libraries }}"
+        loop: "{{ variables.paths_to_shared_libraries }}"
       - nginx/cli.conf
       - nginx/web.conf
       - nginx/mode.sh
@@ -293,22 +293,22 @@ workloads:
     arguments:
       - name: PRIVATE_COMPOSER_REGISTRY_URL_{{ loop.key }}
         value: "{{ loop.value.url }}"
-        loop: "{{ variable.private_composer_registries }}"
+        loop: "{{ variables.private_composer_registries }}"
       - name: PRIVATE_COMPOSER_REGISTRY_USERNAME_{{ loop.key }}
         value: "{{ loop.value.username }}"
-        loop: "{{ variable.private_composer_registries }}"
+        loop: "{{ variables.private_composer_registries }}"
       - name: PRIVATE_COMPOSER_REGISTRY_PASSWORD_{{ loop.key }}
         value: "{{ loop.value.password }}"
-        loop: "{{ variable.private_composer_registries }}"
+        loop: "{{ variables.private_composer_registries }}"
 
   - type: web_service
     name: web
     alias: Web service
     instances:
-      minimum: "{{ variable.minimum_instances }}"
-      maximum: "{{ variable.maximum_instances }}"
-    concurrency: "{{ variable.concurrency }}"
-    timeout: "{{ variable.timeout }}"
+      minimum: "{{ variables.minimum_instances }}"
+      maximum: "{{ variables.maximum_instances }}"
+    concurrency: "{{ variables.concurrency }}"
+    timeout: "{{ variables.timeout }}"
     container:
       name: laravel
       image: "{* image.laravel *}"
@@ -319,13 +319,13 @@ workloads:
         - name: CLOUD_RUN_PROJECT_HASH
           value: "{{ google.project_hash }}"
         - name: TIMEZONE
-          value: "{{ variable.timezone }}"
+          value: "{{ variables.timezone }}"
         - name: CONCURRENCY
-          value: "{{ variable.concurrency }}"
+          value: "{{ variables.concurrency }}"
         - name: MAX_FILE_UPLOAD
-          value: "{{ variable.maximum_file_upload_size }}"
-      memory: "{{ variable.memory }}"
-      cpus: "{{ variable.cpus }}"
+          value: "{{ variables.maximum_file_upload_size }}"
+      memory: "{{ variables.memory }}"
+      cpus: "{{ variables.cpus }}"
 
   - type: cli_service
     name: cli
@@ -348,13 +348,13 @@ workloads:
         - name: CLOUD_RUN_PROJECT_HASH
           value: "{{ google.project_hash }}"
         - name: TIMEZONE
-          value: "{{ variable.timezone }}"
+          value: "{{ variables.timezone }}"
         - name: CONCURRENCY
           value: 10
         - name: MAX_FILE_UPLOAD
-          value: "{{ variable.maximum_file_upload_size }}"
-      memory: "{{ variable.memory }}"
-      cpus: "{{ variable.cpus }}"
+          value: "{{ variables.maximum_file_upload_size }}"
+      memory: "{{ variables.memory }}"
+      cpus: "{{ variables.cpus }}"
 
   - type: background_worker
     name: "worker_{{ loop.key }}"
@@ -374,25 +374,25 @@ workloads:
         - name: CLOUD_RUN_PROJECT_HASH
           value: "{{ google.project_hash }}"
         - name: TIMEZONE
-          value: "{{ variable.timezone }}"
+          value: "{{ variables.timezone }}"
         - name: CONCURRENCY
           value: "{{ loop.value.concurrency }}"
         - name: MAX_FILE_UPLOAD
-          value: "{{ variable.maximum_file_upload_size }}"
+          value: "{{ variables.maximum_file_upload_size }}"
       memory: "{{ loop.value.memory }}"
       cpus: "{{ loop.value.cpus }}"
-    loop: "{{ variable.workers }}"
+    loop: "{{ variables.workers }}"
 
   - type: cron_job
     name: scheduler
     alias: Scheduler
     schedule: "* * * * *"
-    timezone: "{{ variable.timezone }}"
+    timezone: "{{ variables.timezone }}"
     target:
       type: cli_service
       cli_service: "{* cli_service.cli *}"
       command: "php artisan schedule:run"
-    if: "{{ variable.scheduler }}"
+    if: "{{ variables.scheduler }}"
 
   - type: job
     name: init
@@ -401,7 +401,7 @@ workloads:
       type: cli_service
       cli_service: "{* cli_service.cli *}"
       command: "sh /scripts/init.sh"
-    if: "{{ variable.release_script }}"
+    if: "{{ variables.release_script }}"
 
   - type: entrypoint
     name: web

@@ -94,12 +94,12 @@ form:
         type: code
         default:
           switch:
-            - case: "{{ variable.build_target == 'static' and variable.package_manager == 'npm' }}"
+            - case: "{{ variables.build_target == 'static' and variables.package_manager == 'npm' }}"
               value: npm run generate
-            - case: "{{ variable.build_target == 'static' and variable.package_manager == 'yarn' }}"
+            - case: "{{ variables.build_target == 'static' and variables.package_manager == 'yarn' }}"
               value: yarn run generate
-            # TODO - case: "{{ variable.build_target == 'server' }}"
-            # TODO   value: "{{ variable.package_manager }} run build"
+            # TODO - case: "{{ variables.build_target == 'server' }}"
+            # TODO   value: "{{ variables.package_manager }} run build"
 
       - name: Path to build
         description: The directory in which the build of the service is stored by the build script.
@@ -176,21 +176,21 @@ workloads:
     name: nuxtjs_static
     dockerfile: static/Dockerfile
     files:
-      - "{{ path('code-repository', variable.path_to_source_code, '**') }}"
+      - "{{ path('code-repository', variables.path_to_source_code, '**') }}"
       - path: "{{ path('code-repository', loop.value, '**') }}"
-        loop: "{{ variable.paths_to_shared_libraries }}"
+        loop: "{{ variables.paths_to_shared_libraries }}"
       - static/server.conf
     arguments:
       - map: "{{ environment }}"
-    if: "{{ variable.build_target == 'static' }}"
+    if: "{{ variables.build_target == 'static' }}"
 
   - type: web_service
     name: nuxtjs_static
     instances:
-      minimum: "{{ variable.minimum_instances }}"
-      maximum: "{{ variable.maximum_instances }}"
-    concurrency: "{{ variable.concurrency }}"
-    timeout: "{{ variable.timeout }}"
+      minimum: "{{ variables.minimum_instances }}"
+      maximum: "{{ variables.maximum_instances }}"
+    concurrency: "{{ variables.concurrency }}"
+    timeout: "{{ variables.timeout }}"
     container:
       name: nuxtjs
       image: "{* image.nuxtjs_static *}"
@@ -198,10 +198,10 @@ workloads:
         - name: CLOUD_RUN_PROJECT_HASH
           value: "{{ google.project_hash }}"
         - name: CONCURRENCY
-          value: "{{ variable.concurrency }}"
-      memory: "{{ variable.memory }}"
-      cpus: "{{ variable.cpus }}"
-    if: "{{ variable.build_target == 'static' }}"
+          value: "{{ variables.concurrency }}"
+      memory: "{{ variables.memory }}"
+      cpus: "{{ variables.cpus }}"
+    if: "{{ variables.build_target == 'static' }}"
 
   - type: entrypoint
     name: nuxtjs_static
@@ -209,4 +209,4 @@ workloads:
     target: 
       type: web_service
       web_service: "{* web_service.nuxtjs_static *}"
-    if: "{{ variable.build_target == 'static' }}"
+    if: "{{ variables.build_target == 'static' }}"
