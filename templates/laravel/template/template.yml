@@ -235,6 +235,14 @@ form:
             default: 900
 
           - type: integer
+            name: Job retries
+            description: >
+              The number of times the execution of the job should be retried after the previous execution failed.
+            variable: retries
+            required: true
+            default: 0
+
+          - type: integer
             name: Job concurrency
             description: >
               The number of concurrent jobs that can be handled by a single instance of the queue worker.
@@ -364,6 +372,7 @@ workloads:
       maximum: "{{ loop.value.maximum_instances }}"
     concurrency: "{{ loop.value.concurrency }}"
     timeout: "{{ loop.value.timeout }}"
+    retries: "{{ loop.value.retries }}"
     container:
       name: laravel
       image: "{* image.laravel *}"
