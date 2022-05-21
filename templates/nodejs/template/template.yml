@@ -96,6 +96,11 @@ form:
   - name: Runtime
     questions:
 
+      - type: timezone
+        name: Timezone
+        variable: timezone
+        required: true
+
       - type: code
         name: Additional software
         description: >
