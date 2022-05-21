@@ -80,9 +80,9 @@ form:
         type: code
         default:
           switch:
-            - case: "{{ variable.package_manager == 'npm' }}"
+            - case: "{{ variables.package_manager == 'npm' }}"
               value: npm run build
-            - case: "{{ variable.package_manager == 'yarn' }}"
+            - case: "{{ variables.package_manager == 'yarn' }}"
               value: yarn run build
 
       - name: Path to server
