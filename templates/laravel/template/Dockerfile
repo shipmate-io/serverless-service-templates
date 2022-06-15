@@ -1,6 +1,6 @@
 # Set the nginx-php-fpm base image, based on the specified php version.
 {% if variables.php_version == "8.0" %}
-FROM europe-west3-docker.pkg.dev/smoothy-171414/base-images/nginx-php-fpm/8.0:1.0.5 AS php-stage
+FROM europe-west3-docker.pkg.dev/smoothy-171414/base-images/nginx-php-fpm/8.0:1.0.6 AS php-stage
 {% endif %}
 
 # Install the additional Linux packages or utilites, if specified.
