@@ -33,8 +33,6 @@ form:
         required: true
         variable: php_version
         options:
-          - name: "7.4"
-            value: "7.4"
           - name: "8.0"
             value: "8.0"
 

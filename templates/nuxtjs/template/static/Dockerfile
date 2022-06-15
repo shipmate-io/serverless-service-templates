@@ -7,7 +7,7 @@ ARG {{ name }}
 
 # Install the additional Linux packages or utilites, if specified.
 {% if variables.additional_software_script|length > 0 %}
-RUN apt-get update \
+RUN echo "" \
 {% for command in variables.additional_software_script|split('\n')|filter(command => command) %}
  && ({{ command }}) \
 {% endfor %}
@@ -49,7 +49,7 @@ RUN {{ command }}
 {% endfor %}
 
 # Switch to the NGINX image.
-FROM europe-west3-docker.pkg.dev/smoothy-171414/base-images/nginx/1.21:1.0.0
+FROM europe-west3-docker.pkg.dev/smoothy-171414/base-images/nginx/1.21:1.0.1
 
 # Copy the nginx configuration into the image.
 COPY static/server.conf /etc/nginx/conf.d/server.conf

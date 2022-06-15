@@ -1,4 +1,7 @@
-FROM europe-west3-docker.pkg.dev/smoothy-171414/base-images/nodejs/{{ variables.node_version }}:1.0.1
+# Set the nodejs base image, based on the specified node version.
+{% if variables.node_version == 16 %}
+FROM europe-west3-docker.pkg.dev/smoothy-171414/base-images/nodejs/16:1.0.2
+{% endif %}
 
 # Install the additional Linux packages or utilites, if specified.
 {% if variables.additional_software_script|length > 0 %}
