@@ -149,9 +149,9 @@ workloads:
     image: nuxtjs_static
     environment:
       - name: CLOUD_RUN_PROJECT_HASH
-          value: "{{ google.project_hash }}"
+        value: "{{ google.project_hash }}"
       - name: CONCURRENCY
-          value: "{{ variables.web_workload_size.concurrency }}"
+        value: "{{ variables.web_workload_size.concurrency }}"
     entrypoints:
       web: {}
     memory: "{{ variables.web_workload_size.memory }}"
