@@ -1,8 +1,6 @@
 api: v1
-
-meta:
-  name: Nuxt.js
-  description: JavaScript service using the Nuxt.js framework
+name: Nuxt.js
+description: JavaScript service using the Nuxt.js framework
 
 form:
 
@@ -13,8 +11,8 @@ form:
         description: >
           The absolute path to the directory in the Git repository that contains the source code of the service.
           For example: "/services/web-client".
-        variable: path_to_source_code
         type: file_path
+        variable: path_to_source_code
         default: /
 
       - name: Paths to shared libraries
@@ -22,18 +20,18 @@ form:
           If the service uses one or more shared libraries that are stored in the Git repository outside of its source 
           directory, you should specify the absolute paths to these libraries here. 
           For example: "/libraries/ui-components".
+        type: file_paths
         variable: paths_to_shared_libraries
         required: false
-        type: file_paths
 
   - name: Building configuration
     questions:
 
       - name: Node version
         description: The Node.js version used to build the source code.
+        type: select
         variable: node_version
         required: true
-        type: select
         options:
           - name: 16
             value: 16
@@ -43,9 +41,9 @@ form:
 
       - name: Package manager
         description: The package manager used to install the Node.js dependencies of the service.
+        type: select
         variable: package_manager
         required: true
-        type: select
         options:
           - name: NPM
             value: npm
@@ -59,27 +57,27 @@ form:
           The private NPM registries that host the private NPM packages of the service, if any.
         variable: private_npm_registries
         questions:
-          - type: string
-            name: URL
+          - name: URL
             description: The URL of the private registry.
+            type: string
             variable: url
             required: true
-          - type: string
-            name: Scope
+          - name: Scope
             description: "The scope of the packages stored in the private registry. For example: @fortawesome"
+            type: string
             variable: scope
             required: true
-          - type: password
-            name: Authentication token
+          - name: Authentication token
             description: The authentication token that should be used to authenticate with the private registry.
+            type: password
             variable: auth_token
             required: true
 
       - name: Build target
         description: The type of build to create for the service.
+        type: select
         variable: build_target
         required: true
-        type: select
         options:
           - name: Client-side static service
             value: static
@@ -89,9 +87,9 @@ form:
 
       - name: Build script
         description: The script to build the service.
+        type: code
         variable: build_script
         required: true
-        type: code
         default:
           switch:
             - case: "{{ variables.build_target == 'static' and variables.package_manager == 'npm' }}"
@@ -103,77 +101,33 @@ form:
 
       - name: Path to build
         description: The directory in which the build of the service is stored by the build script.
+        type: file_path
         variable: path_to_build
         required: true
-        type: file_path
         default: dist/
 
   - name: Runtime
     questions:
 
-      - type: code
-        name: Additional software
+      - name: Additional software
         description: >
           The installation script for the additional Linux packages or utilities the service needs, if any. Within the 
           script, you can use any default Linux Debian utility, including the apt package manager. Multi-line commands
           and comments are not allowed in the script.
+        type: code
         variable: additional_software_script
 
-  - name: Web service
+  - name: Web workload
     questions:
 
-      - type: integer
-        name: Request timeout
-        description: >
-          The time in seconds after which the processing of a request is interrupted.
-        variable: timeout
+      - name: Workload size
+        type: workload_size
+        variable: web_workload_size
         required: true
-        default: 30
 
-      - type: integer
-        name: Request concurrency
-        description: >
-          The number of concurrent requests that can be handled by a single instance of the service.
-        variable: concurrency
-        required: true
-        default: 80
+images:
 
-      - type: integer
-        name: Minimum instances
-        description: >
-          The minimum number of instances of the service that should be available at all times.
-        variable: minimum_instances
-        required: true
-        default: 0
-
-      - type: integer
-        name: Maximum instances
-        description: >
-          The maximum number of instances of the service that can be available at all times.
-        variable: maximum_instances
-        required: true
-        default: 20
-
-      - type: binary_number
-        name: Memory
-        description: >
-          The amount of memory in megabytes that is allocated to each instance of the service.
-        variable: memory
-        required: true
-        default: 128
-      
-      - type: number
-        name: CPU cores
-        description: >
-          The number of CPU cores that is allocated to each instance of the service.
-        variable: cpus
-        required: true
-        default: 0.5
-
-workloads:
-
-  - type: image
-    name: nuxtjs_static
+  - name: nuxtjs_static
     dockerfile: static/Dockerfile
     files:
       - "{{ path('code-repository', variables.path_to_source_code, '**') }}"
@@ -184,29 +138,21 @@ workloads:
       - map: "{{ environment }}"
     if: "{{ variables.build_target == 'static' }}"
 
-  - type: web_service
-    name: nuxtjs_static
-    instances:
-      minimum: "{{ variables.minimum_instances }}"
-      maximum: "{{ variables.maximum_instances }}"
-    concurrency: "{{ variables.concurrency }}"
-    timeout: "{{ variables.timeout }}"
-    container:
-      name: nuxtjs
-      image: "{* image.nuxtjs_static *}"
-      environment:
-        - name: CLOUD_RUN_PROJECT_HASH
-          value: "{{ google.project_hash }}"
-        - name: CONCURRENCY
-          value: "{{ variables.concurrency }}"
-      memory: "{{ variables.memory }}"
-      cpus: "{{ variables.cpus }}"
-    if: "{{ variables.build_target == 'static' }}"
+workloads:
 
-  - type: entrypoint
-    name: nuxtjs_static
-    alias: Nuxt.js service
-    target: 
-      type: web_service
-      web_service: "{* web_service.nuxtjs_static *}"
-    if: "{{ variables.build_target == 'static' }}"
+  - name: web
+    instances:
+      minimum: "{{ variables.web_workload_size.minimum_instances }}"
+      maximum: "{{ variables.web_workload_size.maximum_instances }}"
+    concurrency: "{{ variables.web_workload_size.concurrency }}"
+    timeout: "{{ variables.web_workload_size.timeout }}"
+    image: nuxtjs_static
+    environment:
+      - name: CLOUD_RUN_PROJECT_HASH
+          value: "{{ google.project_hash }}"
+      - name: CONCURRENCY
+          value: "{{ variables.web_workload_size.concurrency }}"
+    entrypoints:
+      web: {}
+    memory: "{{ variables.web_workload_size.memory }}"
+    cpus: "{{ variables.web_workload_size.cpus }}"
